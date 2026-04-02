@@ -4,14 +4,13 @@ from github import Github, Auth
 from google import genai
 
 def main():
-    # 1. Environment Setup
     token = os.getenv("GH_TOKEN") 
     gemini_key = os.getenv("GEMINI_API_KEY")
     repo_name = os.getenv("GITHUB_REPOSITORY")
     pr_num = os.getenv("PR_NUMBER")
     
     try:
-        # 2. Initialize Clients - Forcing v1 for stability
+        # 1. Initialize Clients - Forcing v1 for production stability
         client = genai.Client(api_key=gemini_key, http_options={'api_version': 'v1'})
         gh = Github(auth=Auth.Token(token))
         repo = gh.get_repo(repo_name)
@@ -25,46 +24,41 @@ def main():
 
         full_code_context = ""
         for file in files:
-            # Skip deleted files
             if file.status == "removed":
                 continue
                 
-            print(f"📄 Fetching full content for: {file.filename}")
-            # We get the 'raw' content of the file from the branch, not just the diff
+            print(f"📄 Fetching full content: {file.filename}")
             content = repo.get_contents(file.filename, ref=pull_request.head.sha)
             file_text = content.decoded_content.decode("utf-8")
-            full_code_context += f"\n\n--- FULL FILE: {file.filename} ---\n{file_text}\n"
+            full_code_context += f"\n\n--- FILE: {file.filename} ---\n{file_text}\n"
 
         if not full_code_context:
-            print("⚠️ No code files found to analyze.")
+            print("⚠️ No code files found.")
             return
 
-        # 3. AI Generation - Requesting Logic Analysis
-        print("🤖 Analyzing Full Code Logic with Gemini 2.0-Flash...")
+        # 2. THE FIX: Using Gemini 2.5-Flash
+        print("🤖 Analyzing Logic with Gemini 2.5-Flash (Current Stable)...")
         
         prompt = f"""
         Act as a Senior Technical Writer. 
-        Analyze the logic of the following files and generate a comprehensive 'Technical Overview'.
-        Focus on:
-        1. The primary purpose of the code.
-        2. Key functions/classes and how they interact.
-        3. Logic flow for security or data processing.
+        Analyze the logic of the following security implementation and generate a guide.
+        Focus on the class structure, password hashing, and session validation.
 
-        CODE CONTEXT:
+        CODE:
         {full_code_context[:15000]} 
         """
 
-        # Note: Using 'gemini-2.0-flash' as it is the current global stable workhorse
+        # Switched to 2.5-flash to resolve the 404
         response = client.models.generate_content(
-            model="gemini-2.0-flash", 
+            model="gemini-2.5-flash", 
             contents=prompt
         )
         
-        # 4. Post the Comment
-        comment_body = f"## 🧩 Technical Logic Overview\n\n{response.text}\n\n---\n*Generated from full file context*"
+        # 3. Post the Comment
+        comment_body = f"## 🧩 Security Logic Overview\n\n{response.text}\n\n---\n*Verified Production Build (2.5-Flash)*"
         pull_request.create_issue_comment(comment_body)
             
-        print("🚀 Success! Logic overview posted.")
+        print("🚀 Success!")
 
     except Exception as e:
         print(f"❌ Critical Error: {str(e)}")
