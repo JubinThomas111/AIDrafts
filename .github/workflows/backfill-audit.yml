@@ -1,0 +1,24 @@
+name: Documentation Audit
+on: 
+  workflow_dispatch: # This is the "Magic Button" trigger
+
+jobs:
+  audit-job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: pip install PyGithub
+
+      - name: Run the Audit Script
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python scripts/backfill_audit.py
