@@ -42,7 +42,13 @@ def main():
         prompt = f"""
         Act as a Senior Technical Writer. 
         Analyze the logic of the following security implementation and generate a guide.
-        Focus on the class structure, password hashing, and session validation.
+        Do not explain the class structure.
+        Generate the following format:
+        1. Overview of the feature - Max 5 sentences
+        2. Prerequisites to enable or consume the feature that is a requirement
+        3. How-to section - write down the steps in the correct sequence
+        4. Limitations 
+        5. Dependencies
 
         CODE:
         {full_code_context[:15000]} 
