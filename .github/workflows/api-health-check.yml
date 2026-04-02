@@ -1,0 +1,27 @@
+name: Gemini API Health Check
+on:
+  schedule:
+    - cron: '0 9 * * 1' # Runs at 9:00 AM every Monday
+  workflow_dispatch:      # Allows you to run it manually
+
+jobs:
+  check-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test Model Availability
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          pip install -q google-genai
+          python -c "
+          import os, sys
+          from google import genai
+          try:
+              client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'), http_options={'api_version': 'v1'})
+              # Simple 'ping' to see if the model responds
+              client.models.generate_content(model='gemini-2.5-flash', contents='ping')
+              print('✅ Model gemini-2.5-flash is active.')
+          except Exception as e:
+              print(f'❌ ALERT: gemini-2.5-flash check failed! Error: {e}')
+              sys.exit(1)
+          "
