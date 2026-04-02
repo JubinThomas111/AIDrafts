@@ -42,13 +42,14 @@ def main():
         prompt = f"""
         Act as a Senior Technical Writer. 
         Analyze the logic of the following security implementation and generate a guide.
-        Do not explain the class structure.
+        Do not explain the class structure. Do not use the code in the draft.
         Generate the following format:
         1. Overview of the feature - Max 5 sentences
         2. Prerequisites to enable or consume the feature that is a requirement
-        3. How-to section - write down the steps in the correct sequence
+        3. How-to section - write down the steps in the correct sequence. Do not add or use code lines. Instead describe code paths using natural language.
         4. Limitations 
         5. Dependencies
+        
 
         CODE:
         {full_code_context[:15000]} 
