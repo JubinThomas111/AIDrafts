@@ -1,14 +1,24 @@
 name: Gemini API Health Check
 on:
   schedule:
-    - cron: '0 9 * * 1' # Runs at 9:00 AM every Monday
-  workflow_dispatch:      # Allows you to run it manually
+    - cron: '0 9 * * 1-5' # Runs at 9:00 AM every Monday
+  workflow_dispatch:    # Allows you to run it manually
 
 jobs:
   check-api:
     runs-on: ubuntu-latest
     steps:
-      - name: Test Model Availability
+      # 1. Standardize the Environment
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # 2. Test Model Availability
+      - name: Test Gemini 2.5 Connectivity
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
@@ -17,11 +27,21 @@ jobs:
           import os, sys
           from google import genai
           try:
-              client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'), http_options={'api_version': 'v1'})
+              client = genai.Client(
+                  api_key=os.getenv('GEMINI_API_KEY'), 
+                  http_options={'api_version': 'v1'}
+              )
               # Simple 'ping' to see if the model responds
-              client.models.generate_content(model='gemini-2.5-flash', contents='ping')
-              print('✅ Model gemini-2.5-flash is active.')
+              response = client.models.generate_content(
+                  model='gemini-2.5-flash', 
+                  contents='ping'
+              )
+              if response.text:
+                  print('✅ Health Check Passed: gemini-2.5-flash is active.')
+              else:
+                  print('⚠️ Partial Failure: Model responded but returned no text.')
+                  sys.exit(1)
           except Exception as e:
-              print(f'❌ ALERT: gemini-2.5-flash check failed! Error: {e}')
+              print(f'❌ ALERT: API check failed! Error: {e}')
               sys.exit(1)
           "
