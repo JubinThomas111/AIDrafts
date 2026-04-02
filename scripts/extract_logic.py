@@ -10,12 +10,8 @@ def main():
     repo_name = os.getenv("GITHUB_REPOSITORY")
     pr_num = os.getenv("PR_NUMBER")
     
-    if not token or not gemini_key:
-        print(f"❌ Error: Missing credentials. Check GitHub Secrets.")
-        sys.exit(1)
-
     try:
-        # 2. Initialize Clients - Using Stable v1
+        # 2. Initialize Clients - Forcing v1 for stability
         client = genai.Client(api_key=gemini_key, http_options={'api_version': 'v1'})
         gh = Github(auth=Auth.Token(token))
         repo = gh.get_repo(repo_name)
@@ -27,41 +23,48 @@ def main():
         pull_request = repo.get_pull(int(pr_num))
         files = pull_request.get_files()
 
-        diff_content = ""
+        full_code_context = ""
         for file in files:
-            if file.patch:
-                diff_content += f"\n--- File: {file.filename} ---\n{file.patch}\n"
+            # Skip deleted files
+            if file.status == "removed":
+                continue
+                
+            print(f"📄 Fetching full content for: {file.filename}")
+            # We get the 'raw' content of the file from the branch, not just the diff
+            content = repo.get_contents(file.filename, ref=pull_request.head.sha)
+            file_text = content.decoded_content.decode("utf-8")
+            full_code_context += f"\n\n--- FULL FILE: {file.filename} ---\n{file_text}\n"
 
-        if not diff_content:
-            print("⚠️ No code changes detected.")
+        if not full_code_context:
+            print("⚠️ No code files found to analyze.")
             return
 
-        # 3. AI Generation - SWITCHED TO GEMINI 2.5 FLASH (Current Stable)
-        print("🤖 Consulting Stable Gemini 2.5-Flash (v1)...")
+        # 3. AI Generation - Requesting Logic Analysis
+        print("🤖 Analyzing Full Code Logic with Gemini 2.0-Flash...")
+        
         prompt = f"""
         Act as a Senior Technical Writer. 
-        Analyze the following code changes and generate a concise 'How-to' guide.
-        In the following format:
-        Overview
-        Prerequisites
-        How-to
-        Dependencies
-        
-        CODE DIFFS:
-        {diff_content[:8000]}
+        Analyze the logic of the following files and generate a comprehensive 'Technical Overview'.
+        Focus on:
+        1. The primary purpose of the code.
+        2. Key functions/classes and how they interact.
+        3. Logic flow for security or data processing.
+
+        CODE CONTEXT:
+        {full_code_context[:15000]} 
         """
 
-        # Using the new stable model ID to fix the 404 error
+        # Note: Using 'gemini-2.0-flash' as it is the current global stable workhorse
         response = client.models.generate_content(
-            model="gemini-2.5-flash", 
+            model="gemini-2.0-flash", 
             contents=prompt
         )
         
         # 4. Post the Comment
-        comment_body = f"## 📘 AI Documentation Draft\n\n{response.text}\n\n---\n*Verified Production Build*"
+        comment_body = f"## 🧩 Technical Logic Overview\n\n{response.text}\n\n---\n*Generated from full file context*"
         pull_request.create_issue_comment(comment_body)
             
-        print("🚀 Success! Documentation posted to PR.")
+        print("🚀 Success! Logic overview posted.")
 
     except Exception as e:
         print(f"❌ Critical Error: {str(e)}")
