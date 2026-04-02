@@ -42,7 +42,9 @@ def main():
         prompt = f"""
         Act as a Senior Technical Writer. 
         Analyze the logic of the following security implementation and generate a guide.
-        Do not explain the class structure. Do not use the code in the draft.
+        Do not explain the class structure. Do not use the code in the draft. Since this is a end-user facing doc, do not explain how the code works in the background. 
+        For example, do not explain if the code changes some other code. Explain the why and what of the feature. Don't expose code.
+        The aim for the end-user is to understand and implement the feature.
         Generate the following format:
         1. Overview of the feature - Max 5 sentences
         2. Prerequisites to enable or consume the feature that is a requirement
