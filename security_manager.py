@@ -1,7 +1,7 @@
 import hashlib
 import secrets
 import datetime
-
+# testing logic
 class SecurityManager:
     """Handles user authentication and secure token generation."""
 
